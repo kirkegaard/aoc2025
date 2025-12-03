@@ -3,46 +3,62 @@ package main
 import (
 	"aoc2025/utils"
 	"log/slog"
+	"strconv"
 )
 
-// findMaxJoltage finds the maximum joltage for a given bank
-func findMaxJoltage(bank string) int {
-	maxJoltage := 0
-	largestDigitToRight := -1
+// findMaxJoltage finds the maximum joltage for a given bank using a greedy
+// sliding window.
+func findMaxJoltage(bank string, digitsToSelect int) int {
+	result := ""
+	digitsRemaining := digitsToSelect
+	windowSize := len(bank) - digitsToSelect
+	startPos := 0
 
-	// Scan from right to left
-	for i := len(bank) - 1; i >= 0; i-- {
-		currentDigit := int(bank[i] - '0')
+	for digitsRemaining > 0 {
+		// Find the largest digit in the valid window
+		largestDigit := 0
+		largestPos := startPos
 
-		// If we've seen a digit to the right, try forming a two digit number
-		if largestDigitToRight != -1 {
-			twoDigitNumber := currentDigit*10 + largestDigitToRight
-			// If the two digit number is greater than the max joltage, update it
-			if twoDigitNumber > maxJoltage {
-				maxJoltage = twoDigitNumber
+		// The window from startPos to (startPos + skipBudget)
+		for i := startPos; i <= startPos+windowSize && i < len(bank); i++ {
+			digit := int(bank[i] - '0')
+			if digit > largestDigit {
+				largestDigit = digit
+				largestPos = i
 			}
 		}
 
-		// Update the largest digit we've seen to the right
-		if currentDigit > largestDigitToRight {
-			largestDigitToRight = currentDigit
-		}
+		// Select digit
+		result += strconv.Itoa(largestDigit)
+		digitsRemaining--
+
+		// Update window size and start position
+		windowSize -= (largestPos - startPos)
+		startPos = largestPos + 1
 	}
 
-	return maxJoltage
+	// Convert result to integer
+	joltage, _ := strconv.Atoi(result)
+	return joltage
 }
 
 func main() {
 	logger := slog.Default()
 	input := utils.ReadFile("./day03/input")
 
-	result := 0
+	result1 := 0
+	result2 := 0
 
 	for _, bank := range input {
-		maxJoltage := findMaxJoltage(bank)
-		result += maxJoltage
-		logger.Info("Max joltage", slog.Int("joltage", maxJoltage))
+		twoDigitJoltage := findMaxJoltage(bank, 2)
+		twelveDigitJoltage := findMaxJoltage(bank, 12)
+
+		result1 += twoDigitJoltage
+		result2 += twelveDigitJoltage
+
+		logger.Info("Bank joltage", slog.Int("twoDigit", twoDigitJoltage), slog.Int("twelveDigit", twelveDigitJoltage))
 	}
 
-	logger.Info("Result", slog.Int("joltage", result))
+	logger.Info("Result 1", slog.Int("total", result1))
+	logger.Info("Result 2", slog.Int("total", result2))
 }
